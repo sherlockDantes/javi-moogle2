@@ -1,0 +1,12 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs
+/bin/Debug/net6.0
+/Documents
+/MoogleEngine/bin/Debug/net6.0
+/MoogleEngine/obj
+/MoogleServer/bin/Debug/net6.0
+/MoogleServer/obj
+/obj

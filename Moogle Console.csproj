@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net6.0</TargetFramework>
+    <RootNamespace>Moogle_Project</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="MoogleEngine\**" />
+    <Compile Remove="MoogleServer\**" />
+    <EmbeddedResource Remove="MoogleEngine\**" />
+    <EmbeddedResource Remove="MoogleServer\**" />
+    <None Remove="MoogleEngine\**" />
+    <None Remove="MoogleServer\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="MoogleEngine\MoogleEngine.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Documents\TextFile1.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Documents\TextFile2.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

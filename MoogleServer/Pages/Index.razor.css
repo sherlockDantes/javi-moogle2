@@ -1,0 +1,25 @@
+.results {
+    text-align: left;
+}
+
+.item .title {
+    font-size: large;
+    font-weight: bold;
+}
+
+table {
+    table-layout: fixed;
+       margin-left: auto;
+            margin-right: auto;
+}
+
+table, th, td {
+    border: 1px solid black;
+}
+
+th, td{
+    padding: 10px;
+    width: 120px !important;
+}
+
+
