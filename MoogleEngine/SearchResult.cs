@@ -2,12 +2,12 @@ namespace MoogleEngine;
 
 public class SearchResult
 {
-    private IEnumerable<SearchItem> items;
+    private SearchItem[] items;
 
-    public SearchResult(IEnumerable<SearchItem> items, string suggestion="")
+    public SearchResult(SearchItem[] items, string suggestion="")
     {
         if (items == null) {
-            throw new ArgumentNullException(nameof(items));
+            throw new ArgumentNullException("items");
         }
 
         this.items = items;
@@ -24,11 +24,5 @@ public class SearchResult
         return this.items;
     }
 
-    public int Count { get { return this.items.Count(); } }
-
-    public string[] DocumentNames;
-    public SortedDictionary<string, List<int>> Vocabulary;
-    public Dictionary<string, List<double>> TFMatrix;
-    public Dictionary<string, double> IDFMatrix;
-    public Dictionary<string, List<double>> TFIDFMatrix;
+    public int Count { get { return this.items.Length; } }
 }
