@@ -1,116 +1,137 @@
-﻿using System.Reflection;
-using System.Reflection.Metadata;
-
-namespace MoogleEngine;
+﻿namespace MoogleEngine;
 
 
 public static class Moogle
 {
-
     public static SearchResult Query(string query)
     {
         // Modifique este método para responder a la búsqueda
-        try
-        {
+        string folderPath = @"D:\Work\Businnes\CSharp\Moogle Project\Moogle Project Original 2.0\Content";
+        string[] files = Directory.GetFiles(folderPath);
+        var corpus = Core.GetCorpus(folderPath);
+        var tf_idfMatrix = Core.GetTF_IDF_MatrixNormalized(corpus, files);
+        var queryVector = GetTF_IDFQueryNormalized(query, corpus);
+        var cosines = GetCosineSimilarity(queryVector, tf_idfMatrix);
 
-            string[] documentNames;
-            var folderPath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "Documents");
-            var vocabulary = DocumentManager.ReadAllTextFiles(folderPath, out documentNames);
-            var tfMatrix = TFIDF.CalculateTF(vocabulary, documentNames.Length);
-            var idfMatrix = TFIDF.CalculateIDF(vocabulary, documentNames.Length);
-            var tfidfMatrix = TFIDF.CalculateTFIDF(tfMatrix, idfMatrix, documentNames.Length);
 
-            var searchterms = new List<SearchTerm>();
+        // SearchItem[] items = new SearchItem[3] {
+        //     new SearchItem("Hello World", "Lorem ipsum dolor sit amet", 0.9f),
+        //     new SearchItem("Hello World", "Lorem ipsum dolor sit amet", 0.5f),
+        //     new SearchItem("Hello world", "Lorem ipsum dolor sit amet", 0.95f),
+        // };
 
-            var searchTerm = new SearchTerm();
-            foreach (var str in query.ToLower().Split().Select(s => s.Trim()))
-            {
-                if (str.StartsWith('!') || str.StartsWith('^'))
-                {
-                    searchTerm.Operador = str[..1];
-                    searchTerm.Term = str[1..];
-                    searchterms.Add(searchTerm);
-                }
-                else
-                {
-                    searchTerm.Term = str;
-                    searchterms.Add(searchTerm);
-                }
-            }
-
-            var meaningfulSearchTerms = new List<SearchTerm>();
-
-            foreach (var term in searchterms)
-            {
-                if (vocabulary.ContainsKey(term.Term) && tfidfMatrix[term.Term].Any(tfidf => tfidf > 0.1))
-                {
-                    meaningfulSearchTerms.Add(term);
-                }
-            }
-
-            var items = new List<SearchItem>();
-
-            foreach (var meaningfulSearch in meaningfulSearchTerms)
-            {
-                if (string.IsNullOrEmpty(meaningfulSearch.Operador))
-                {
-                    if (vocabulary.ContainsKey(meaningfulSearch.Term))
-                    {
-                        var tfidfs = tfidfMatrix[meaningfulSearch.Term];
-                        for (int i = 0; i < tfidfs.Count; i++)
-                        {
-                            if (tfidfs[i] > 0)
-                            {
-                                var snippet = DocumentManager.GetSnippet(folderPath, documentNames[i], meaningfulSearch.Term);
-                                items.Add(new SearchItem(documentNames[i], snippet, 1f));
-                            }
-                        }
-                    }
-                }
-                else if (meaningfulSearch.Operador == "!")
-                {
-                    // Si algun documento tiene un tfidf > 0, significa que el termino se encuentra al menos en un documento, y sera descartado por el uso del operador !
-                    if (vocabulary.ContainsKey(meaningfulSearch.Term) && tfidfMatrix[meaningfulSearch.Term].Any(tfidf => tfidf > 0))
-                    {
-
-                    }
-                }
-                else if (meaningfulSearch.Operador == "^")
-                {
-                    // El termino se encuentra al todos los documentos
-                    if (vocabulary.ContainsKey(meaningfulSearch.Term) && tfidfMatrix[meaningfulSearch.Term].All(tfidf => tfidf > 0))
-                    {
-                        foreach (var document in documentNames)
-                        {
-                            var snippet = DocumentManager.GetSnippet(folderPath, document, meaningfulSearch.Term);
-                            items.Add(new SearchItem(document, snippet, documentNames.Length));
-                        }
-                    }
-                }
-                else
-                {
-
-                }
-            }
-            return new SearchResult(items, query)
-            {
-                DocumentNames = documentNames,
-                Vocabulary = vocabulary,
-                TFMatrix = tfMatrix,
-                IDFMatrix = idfMatrix,
-                TFIDFMatrix = tfidfMatrix
-            };
-        }
-        catch (Exception ex)
-        {
-
-            return null;
-        }
+        return new SearchResult(GetSearchItems(cosines));
     }
 
-    private static string[] ProcessQuery(string query)
+    static SearchItem[] GetSearchItems(SortedDictionary<float, string> cosines)
     {
-        string[] terms = query.ToLower().Split();
-        return terms;
+        var searchItems = new SearchItem[cosines.Count];
+
+        for (int i = 0; i < cosines.Count; i++)
+        {
+            searchItems[(cosines.Count - 1) - i] = new SearchItem(cosines.Values.ElementAt(i), "",cosines.Keys.ElementAt(i));
+        }
+
+        return searchItems;
+    }
+    // static string GetSnippet(string fileName, string folderPath, Dictionary<string, float[]> tf_idfMatrix, SortedDictionary<string, WordData> corpus)
+    // {
+    //     var reader = new StreamReader(Path.Combine(folderPath, fileName));
+    //     string word = corpus.Keys.ToList().ElementAt(tf_idfMatrix[fileName].ToList().IndexOf(tf_idfMatrix[fileName].Max()));
+
+    //     var line = reader.ReadLine();
+    //     while (reader.ReadLine() != null)
+    //     {
+    //         if (Tools.Tokenize(line).Contains(word))
+    //         {
+    //             return line;
+    //         }
+    //         else
+    //         {
+    //             line = reader.ReadLine();
+    //         }
+    //     }
+    //     return string.Empty;
+    // }
+    static float[] GetTF_IDFQueryNormalized(string query, SortedDictionary<string, WordData> corpus)
+    {
+        var terms = Tools.TokenizeQuery(query);
+
+        float[] tf_idfNormalized = new float[corpus.Count];
+
+        for (int i = 0; i < terms.Length; i++)
+        {
+            if (corpus.ContainsKey(terms[i]))
+            {
+                tf_idfNormalized[corpus.Keys.ToList().IndexOf(terms[i])] += corpus[terms[i]].IDF;
+            }
+        }
+
+        float powers = 0;
+        for (int i = 0; i < tf_idfNormalized.Length; i++)
+        {
+            powers += (float)Math.Pow(tf_idfNormalized[i], 2);
+        }
+
+        for (int i = 0; i < tf_idfNormalized.Length; i++)
+        {
+            if (powers == 0)
+            {
+                tf_idfNormalized[i] = 0;
+            }
+            else
+            {
+                tf_idfNormalized[i] = tf_idfNormalized[i] * (1 / powers);
+            }
+        }
+
+        return tf_idfNormalized;
+    }
+    static SortedDictionary<float, string> GetCosineSimilarity(float[] query, Dictionary<string, float[]> tf_idf_Matrix)
+    {
+        var cosineValues = new SortedDictionary<float, string>();
+
+        foreach (var pair in tf_idf_Matrix)
+        {
+            float cosine = DotProduct(query, pair.Value) / (Norm(query) * Norm(pair.Value));
+            if (cosine == 0 || cosine == float.NaN || cosine < 0.0009f)
+            {
+                continue;
+            }
+            else if (cosineValues.ContainsKey(cosine))
+            {
+                cosine -= 0.0001f;
+                cosineValues.Add(cosine, pair.Key);
+            }
+            else
+            {
+                cosineValues.Add(cosine, pair.Key);
+            }
+        }
+
+        return cosineValues;
+    }
+
+    static float DotProduct(float[] firstVector, float[] secondVector)
+    {
+        float result = 0;
+        for (int i = 0; i < firstVector.Length; i++)
+        {
+            result += firstVector[i] * secondVector[i];
+        }
+
+        return result;
+    }
+
+    static float Norm(float[] vector)
+    {
+        float powers = 0;
+
+        for (int i = 0; i < vector.Length; i++)
+        {
+            powers += (float)Math.Pow(vector[i], 2);
+        }
+
+        return (float)Math.Sqrt(powers);
     }
 }

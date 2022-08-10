@@ -2,149 +2,35 @@
 
 <PageTitle>Moogle!</PageTitle>
 
-<div>
-    <h1>🔍 Moogle!</h1>
+<h1>🔍 Moogle!</h1>
 
-    <input class="p-1 my-4" @bind="query" placeholder="Introduzca su búsqueda">
+<input class="p-1 my-4" @bind="query" placeholder="Introduzca su búsqueda">
 
-    <button type="default" class="btn btn-primary" @onclick="RunQuery">🔍 Buscar</button>
-</div>
+<button type="default" class="btn btn-primary" @onclick="RunQuery">🔍 Buscar</button>
+
+@if (!string.IsNullOrEmpty(result.Suggestion)) {
+    <div class="suggestion">
+        <p>¿Quisite decir <strong><a href="#">@result.Suggestion</a></strong>?</p>
+    </div>
+}
 
 <ul class="results">
-
-    @if (!string.IsNullOrEmpty(result.Suggestion))
-    {
-        <div class="suggestion">
-            <p>¿Quisite decir <strong><a href="#">@result.Suggestion</a></strong>?</p>
+@foreach (var item in result.Items()) {
+    <li>
+        <div class="item">
+            <p class="title">@item.Title</p>
+            <p>... @item.Snippet ...</p>
+            <p>@item.Score</p>
         </div>
-    }
-
-    @foreach (var item in result.Items())
-    {
-        <li>
-            <div class="item">
-                <p class="title">@item.Title <span class="text-primary">(@item.Score) </span></p>
-                <p>... @item.Snippet ...</p>
-            </div>
-        </li>
-    }
-
+    </li>
+}
 </ul>
 
-@if (result?.Vocabulary != null)
-{
-    <div>
-        <h3 style="text-align:left">Vocabulario</h3>
-        <table style="width: @(result.Vocabulary.Keys.Count * 120)px">
-            <tr>
-                <th></th>
-                @foreach (var word in result.Vocabulary.Keys)
-                {
-                    <th>@word</th>
-                }
-            </tr>
+@code {
+    private string query = "";
+    private SearchResult result = new SearchResult();
 
-            @for (var i = 0; i < result.DocumentNames.Length; i++)
-            {
-                <tr>
-                    <td>
-                        @result.DocumentNames[i]
-                    </td>
-                    @foreach (var frequency in result.Vocabulary.Values)
-                    {
-                        <td>@frequency[i]</td>
-                    }
-
-
-                </tr>
-            }
-
-        </table>
-    </div>
-}
-
-@if (result?.TFMatrix != null)
-{
-    <div>
-        <h3 style="text-align:left">TF</h3>
-        <table style="width: @(result.Vocabulary.Keys.Count * 120)px">
-            <tr>
-                <th></th>
-                @foreach (var word in result.TFMatrix.Keys)
-                {
-                    <th>@word</th>
-                }
-            </tr>
-
-            @for (var i = 0; i < result.DocumentNames.Length; i++)
-            {
-                <tr>
-                    <td>
-                        @result.DocumentNames[i]
-                    </td>
-                    @foreach (var tf in result.TFMatrix.Values)
-                    {
-                        // Redondeando solamente para la visualizacion en la pag. TF*IDF usa el valor sin redondear
-                        <td>@Math.Round(@tf[i], 4)</td>
-                    }
-                </tr>
-            }
-
-        </table>
-    </div>
-}
-@if (result?.IDFMatrix != null)
-{
-    <div>
-        <h3 style="text-align:left">IDF</h3>
-        <table style="width: @(result.Vocabulary.Keys.Count * 120)px">
-            <tr>
-                <th></th>
-                @foreach (var word in result.IDFMatrix.Keys)
-                {
-                    <th>@word</th>
-                }
-            </tr>
-
-            <tr>
-                <td></td>
-                @foreach (var idf in result.IDFMatrix.Values)
-                {
-                    // Redondeando solamente para la visualizacion en la pag. TF*IDF usa el valor sin redondear
-                    <td>@Math.Round(idf, 4)</td>
-                }
-            </tr>
-
-        </table>
-    </div>
-}
-@if (result?.TFIDFMatrix != null)
-{
-    <div>
-        <h3 style="text-align:left">TFIDF</h3>
-        <table style="width: @(result.Vocabulary.Keys.Count * 120)px">
-            <tr>
-                <th></th>
-                @foreach (var word in result.TFIDFMatrix.Keys)
-                {
-                    <th>@word</th>
-                }
-            </tr>
-
-            @for (var i = 0; i < result.DocumentNames.Length; i++)
-            {
-                <tr>
-                    <td>
-                        @result.DocumentNames[i]
-                    </td>
-                    @foreach (var tfidf in result.TFIDFMatrix.Values)
-                    {
-                        // Redondeando solamente para la visualizacion en la pag. TF*IDF usa el valor sin redondear
-                        <td>@Math.Round(@tfidf[i], 4)</td>
-                    }
-                </tr>
-            }
-
-        </table>
-    </div>
+    private void RunQuery() {
+        result = Moogle.Query(query);
+    }
 }
