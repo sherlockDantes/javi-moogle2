@@ -25,4 +25,6 @@ public class SearchResult
     }
 
     public int Count { get { return this.items.Length; } }
+
+    public int Seconds { get; set; }
 }
