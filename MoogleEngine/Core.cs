@@ -2,59 +2,89 @@ namespace MoogleEngine
 {
     static class Core
     {
-        public static SortedDictionary<string, WordData> GetCorpus(string folderPath)
+        public static SortedDictionary<string, WordData> GetCorpus(string[] files)
         {
-            SortedDictionary<string, WordData> corpus = new SortedDictionary<string, WordData>();
+            var corpus = new SortedDictionary<string, WordData>();
 
-            string[] files = Directory.GetFiles(folderPath);
+            if (files.Length == 0)
+                return null;
 
+            int[] documentTotalWords = new int[files.Length];
+
+            double[] wordFrecuency;
             for (int i = 0; i < files.Length; i++)
             {
                 string[] words = Tools.Tokenize(File.ReadAllText(files[i]));
-                int[] wordFrecuency;
+
+                documentTotalWords[i] = words.Length;
 
                 foreach (var word in words)
                 {
                     if (corpus.ContainsKey(word))
                     {
-                        wordFrecuency = corpus[word].TermFrecuency;
+                        wordFrecuency = corpus[word].TF;
                         wordFrecuency[i]++;
                     }
                     else
                     {
-                        wordFrecuency = new int[files.Length];
+                        wordFrecuency = new double[files.Length];
                         wordFrecuency[i]++;
                         corpus.Add(word, new WordData(wordFrecuency));
                     }
+                }
 
+                // Normalize TF: divide the term frequency by the total number of terms in a document
+                foreach (var word in words)
+                {
+                    wordFrecuency = corpus[word].TF;
+                    wordFrecuency[i] = wordFrecuency[i] / words.Length;
+                    corpus[word].CalculateIDF();
+                    corpus[word].CalculateTFIDF();
                 }
             }
 
             return corpus;
         }
 
-        public static Dictionary<string, float[]> GetTF_IDF_MatrixNormalized(SortedDictionary<string, WordData> Corpus, string[] files)
+        public static SortedDictionary<string, QueryData> GetQueryData(string query, SortedDictionary<string, WordData> corpus)
         {
-            var matrix = new Dictionary<string, float[]>();
+            var queryData = new SortedDictionary<string, QueryData>();
 
-            for (int i = 0; i < files.Length; i++)
+            string[] queryTerms = query.Split(" ");
+
+            for (var i = 0; i < queryTerms.Length; i++)
             {
-                matrix.Add(Path.GetFileName(files[i]), new float[Corpus.Count]);
-                float powers = 0;
-                foreach (var pair in Corpus)
+                if (queryData.ContainsKey(queryTerms[i]))
                 {
-                    powers += (float)Math.Pow(pair.Value.TF_IDF[i], 2);
+                    queryData[queryTerms[i]].TF++;
                 }
-
-                int count = 0;
-                foreach (var pair in Corpus)
+                else
                 {
-                    matrix[Path.GetFileName(files[i])][count] = pair.Value.TF_IDF[i] * (float)(1 / Math.Sqrt(powers));
-                    count++;
+                    queryData.Add(queryTerms[i], new QueryData { TF = 1 });
                 }
             }
 
-            return matrix;
+            // Normalize TF: divide the term frequency by the total number of terms in the query
+            for (var i = 0; i < queryTerms.Length; i++)
+            {
+                if (queryData.ContainsKey(queryTerms[i]))
+                {
+                    queryData[queryTerms[i]].TF = queryData[queryTerms[i]].TF / queryTerms.Length;
+
+
+                    if (corpus.ContainsKey(queryTerms[i]))
+                    {
+                        queryData[queryTerms[i]].IDF = corpus[queryTerms[i]].IDF;
+                    }
+
+                    queryData[queryTerms[i]].CalculateTFIDF();
+                }
+            }
+
+
+
+            return queryData;
         }
+
     }
 }

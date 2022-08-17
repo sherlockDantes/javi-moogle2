@@ -8,29 +8,45 @@
 
 <button type="default" class="btn btn-primary" @onclick="RunQuery">🔍 Buscar</button>
 
-@if (!string.IsNullOrEmpty(result.Suggestion)) {
+@if (!string.IsNullOrEmpty(result.Suggestion))
+{
     <div class="suggestion">
         <p>¿Quisite decir <strong><a href="#">@result.Suggestion</a></strong>?</p>
     </div>
 }
 
-<ul class="results">
-@foreach (var item in result.Items()) {
-    <li>
+<div class="panel panel-default">
+    <div class="panel-body">
+        <h6 class="nomargin  text-start">
+            @result.Count results <small class="text-success">(@result.Seconds seconds) </small>
+        </h6>
+        @*<ul class="results">*@
+        @foreach (var item in result.Items())
+        {
+            <div class="clearfix search-result text-start">
+                <h4><a href="#">@item.Title</a></h4>
+                <small class="text-success">Score: @item.Score</small>
+                <p>Maecenas metus nulla, commodo a sodales sed, dignissim pretium nunc. Nam et lacus neque. Ut enim massa, sodales tempor convallis et, iaculis ac massa.</p>
+            </div>
+
+            @* <li>
         <div class="item">
-            <p class="title">@item.Title</p>
-            <p>... @item.Snippet ...</p>
-            <p>@item.Score</p>
+        <p class="title">@item.Title</p>
+        <p>... @item.Snippet ...</p>
+        <p>@item.Score</p>
         </div>
-    </li>
-}
-</ul>
+        </li>*@
+        }
+        @*</ul>*@
+    </div>
+</div>
 
 @code {
-    private string query = "";
+    private string query = "life learning";
     private SearchResult result = new SearchResult();
 
-    private void RunQuery() {
+    private void RunQuery()
+    {
         result = Moogle.Query(query);
     }
 }

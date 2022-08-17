@@ -62,3 +62,31 @@ a, .btn-link {
     .blazor-error-boundary::after {
         content: "An error has occurred."
     }
+
+/** Page Search
+ *************************************************** **/
+.search-result {
+    padding: 20px 0;
+    border-bottom: #eee 1px solid;
+}
+
+    .search-result h4 {
+        margin: 0;
+        line-height: 20px;
+    }
+
+    .search-result p {
+        font-size: 12px;
+        margin: 0;
+        padding: 0;
+    }
+
+    .search-result img {
+        float: left;
+        margin-right: 10px;
+        margin-top: 6px;
+    }
+
+div.search-result:hover {
+    background-color: #eee;
+}

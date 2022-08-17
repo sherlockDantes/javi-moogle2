@@ -1,50 +1,50 @@
+using System.Diagnostics;
+
 namespace MoogleEngine
 {
-    class WordData
+    [DebuggerDisplay("IDF {IDF}")]
+    public class WordData
     {
-        int[] termFrecuency;
-        public int[] TermFrecuency
-        {
-            get { return termFrecuency; }
-            set { termFrecuency = value; }
-        }
-        public float IDF
-        {
-            get { return GetIDF(); }
-        }
-        public float[] TF_IDF
-        {
-            get { return GetTF_IDF(); }
-        }
-        public WordData(int[] termFrecuency)
-        {
-            this.termFrecuency = new int[termFrecuency.Length];
-            Array.Copy(termFrecuency, this.termFrecuency, termFrecuency.Length);
-        }
-        private float GetIDF()
-        {
-            float result = 0;
+        public double[] TF { get; set; }
+        public double IDF { get; set; }
+        public double[] TFIDF { get; set; }
 
-            for (int i = 0; i < termFrecuency.Length; i++)
+        // Ineficiente crear un array nuevo copiando uno que ya existe
+        //public WordData(int[] termFrecuency)
+        //{
+        //    this.TermFrecuency = new int[termFrecuency.Length];
+        //    Array.Copy(termFrecuency, this.TermFrecuency, termFrecuency.Length);
+        //}
+
+        public WordData(double[] termFrecuency)
+        {
+            this.TF = termFrecuency;
+        }
+
+        public void CalculateIDF()
+        {
+            double result = 0;
+
+            for (int i = 0; i < TF.Length; i++)
             {
-                if (termFrecuency[i] != 0)
+                if (TF[i] != 0)
                 {
                     result++;
                 }
             }
 
-            return (float)Math.Log10(termFrecuency.Length / (1 + result));
+            //return (double)Math.Log10(TermFrecuency.Length / (0.1 + result));
+            IDF =  1 + (double)Math.Log( 1 + TF.Length / result);
         }
-        private float[] GetTF_IDF()
+        public void CalculateTFIDF()
         {
-            float[] result = new float[termFrecuency.Length];
+            TFIDF = new double[TF.Length];
 
-            for(int i = 0; i < result.Length; i++)
+            for(int i = 0; i < TFIDF.Length; i++)
             {
-                result[i] = termFrecuency[i] * GetIDF();
+                TFIDF[i] = TF[i] * IDF;
             }
-
-            return result;
         }
     }
+
 }

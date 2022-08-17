@@ -1,40 +1,61 @@
-﻿namespace MoogleEngine;
+﻿using System;
+using System.Diagnostics;
+
+namespace MoogleEngine;
 
 
 public static class Moogle
 {
     public static SearchResult Query(string query)
     {
+        var sw = new Stopwatch();
+        sw.Start();
         // Modifique este método para responder a la búsqueda
-        string folderPath = @"D:\Work\Businnes\CSharp\Moogle Project\Moogle Project Original 2.0\Content";
+        string folderPath = @"C:\Users\dalon\source\repos\JavierMoogleProject\Documents";
+
         string[] files = Directory.GetFiles(folderPath);
-        var corpus = Core.GetCorpus(folderPath);
-        var tf_idfMatrix = Core.GetTF_IDF_MatrixNormalized(corpus, files);
-        var queryVector = GetTF_IDFQueryNormalized(query, corpus);
-        var cosines = GetCosineSimilarity(queryVector, tf_idfMatrix);
 
+        var corpus = Core.GetCorpus(files);
+        var queryData = Core.GetQueryData(query, corpus);
 
-        // SearchItem[] items = new SearchItem[3] {
-        //     new SearchItem("Hello World", "Lorem ipsum dolor sit amet", 0.9f),
-        //     new SearchItem("Hello World", "Lorem ipsum dolor sit amet", 0.5f),
-        //     new SearchItem("Hello world", "Lorem ipsum dolor sit amet", 0.95f),
-        // };
+        var tfidfMatrix = new List<double[]>();
 
-        return new SearchResult(GetSearchItems(cosines));
+        var totalDocuments = corpus.First().Value.TFIDF.Length;
+        var totalTerms = queryData.Keys.Count;
+
+        var kvp = corpus.Where(x => queryData.ContainsKey(x.Key)).Select(x => x).ToList();
+
+        for (var i = 0; i < totalDocuments; i++)
+        {
+            var tfidf = new double[totalTerms];
+            for (var j = 0; j < kvp.Count; j++)
+            {
+                tfidf[j] = kvp[j].Value.TFIDF[i];
+            }
+            tfidfMatrix.Add(tfidf);
+        }
+        //var queryVector = GetTF_IDFQueryNormalized(query, corpus);
+        double[] cosines = GetCosineSimilarity(queryData.Values.Select(x=> x.TFIDF).ToArray(), tfidfMatrix);
+
+        var result = GetSearchItems(files, cosines);
+
+        sw.Stop();
+        
+        return new SearchResult(GetSearchItems(files, cosines)) { Seconds = sw.Elapsed.Seconds};
     }
 
-    static SearchItem[] GetSearchItems(SortedDictionary<float, string> cosines)
+    static SearchItem[] GetSearchItems(string[] files, double[] cosines)
     {
-        var searchItems = new SearchItem[cosines.Count];
+        var searchItems = new SearchItem[cosines.Length];
 
-        for (int i = 0; i < cosines.Count; i++)
+        for (int i = 0; i < files.Length; i++)
         {
-            searchItems[(cosines.Count - 1) - i] = new SearchItem(cosines.Values.ElementAt(i), "",cosines.Keys.ElementAt(i));
+            searchItems[i] = new SearchItem(Path.GetFileName(files[i]), "", cosines[i]);
         }
 
         return searchItems;
     }
-    // static string GetSnippet(string fileName, string folderPath, Dictionary<string, float[]> tf_idfMatrix, SortedDictionary<string, WordData> corpus)
+    // static string GetSnippet(string fileName, string folderPath, Dictionary<string, double[]> tf_idfMatrix, SortedDictionary<string, WordData> corpus)
     // {
     //     var reader = new StreamReader(Path.Combine(folderPath, fileName));
     //     string word = corpus.Keys.ToList().ElementAt(tf_idfMatrix[fileName].ToList().IndexOf(tf_idfMatrix[fileName].Max()));
@@ -53,68 +74,24 @@ public static class Moogle
     //     }
     //     return string.Empty;
     // }
-    static float[] GetTF_IDFQueryNormalized(string query, SortedDictionary<string, WordData> corpus)
+
+    static double[] GetCosineSimilarity(double[] queryVector, List<double[]> tfidfMatrix)
     {
-        var terms = Tools.TokenizeQuery(query);
+        var cosineValues = new double[tfidfMatrix.Count];
 
-        float[] tf_idfNormalized = new float[corpus.Count];
-
-        for (int i = 0; i < terms.Length; i++)
+        // iterate for every document
+        for (var i = 0; i < tfidfMatrix.Count; i++)
         {
-            if (corpus.ContainsKey(terms[i]))
-            {
-                tf_idfNormalized[corpus.Keys.ToList().IndexOf(terms[i])] += corpus[terms[i]].IDF;
-            }
-        }
-
-        float powers = 0;
-        for (int i = 0; i < tf_idfNormalized.Length; i++)
-        {
-            powers += (float)Math.Pow(tf_idfNormalized[i], 2);
-        }
-
-        for (int i = 0; i < tf_idfNormalized.Length; i++)
-        {
-            if (powers == 0)
-            {
-                tf_idfNormalized[i] = 0;
-            }
-            else
-            {
-                tf_idfNormalized[i] = tf_idfNormalized[i] * (1 / powers);
-            }
-        }
-
-        return tf_idfNormalized;
-    }
-    static SortedDictionary<float, string> GetCosineSimilarity(float[] query, Dictionary<string, float[]> tf_idf_Matrix)
-    {
-        var cosineValues = new SortedDictionary<float, string>();
-
-        foreach (var pair in tf_idf_Matrix)
-        {
-            float cosine = DotProduct(query, pair.Value) / (Norm(query) * Norm(pair.Value));
-            if (cosine == 0 || cosine == float.NaN || cosine < 0.0009f)
-            {
-                continue;
-            }
-            else if (cosineValues.ContainsKey(cosine))
-            {
-                cosine -= 0.0001f;
-                cosineValues.Add(cosine, pair.Key);
-            }
-            else
-            {
-                cosineValues.Add(cosine, pair.Key);
-            }
+            var documentTFIDFVector = tfidfMatrix[i];
+            cosineValues[i] = DotProduct(queryVector, documentTFIDFVector) / (Norm(queryVector) * Norm(documentTFIDFVector));
         }
 
         return cosineValues;
     }
 
-    static float DotProduct(float[] firstVector, float[] secondVector)
+    static double DotProduct(double[] firstVector, double[] secondVector)
     {
-        float result = 0;
+        double result = 0;
         for (int i = 0; i < firstVector.Length; i++)
         {
             result += firstVector[i] * secondVector[i];
@@ -123,15 +100,15 @@ public static class Moogle
         return result;
     }
 
-    static float Norm(float[] vector)
+    static double Norm(double[] vector)
     {
-        float powers = 0;
+        double powers = 0;
 
         for (int i = 0; i < vector.Length; i++)
         {
-            powers += (float)Math.Pow(vector[i], 2);
+            powers += (double)Math.Pow(vector[i], 2);
         }
 
-        return (float)Math.Sqrt(powers);
+        return (double)Math.Sqrt(powers);
     }
 }
