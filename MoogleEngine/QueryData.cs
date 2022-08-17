@@ -9,6 +9,10 @@ namespace MoogleEngine
         public double IDF { get; set; }
         public double TFIDF { get; set; }
 
+        public char? Operator { get; set; }
+
+        public double OperatorMultiplier { get; set; }
+
         public void CalculateTFIDF()
         {
             TFIDF = TF * IDF;

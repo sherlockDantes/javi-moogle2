@@ -17,16 +17,18 @@
 
 <div class="panel panel-default">
     <div class="panel-body">
+        @if (result.Count > 0){
         <h6 class="nomargin  text-start">
             @result.Count results <small class="text-success">(@result.Seconds seconds) </small>
         </h6>
+        }
         @*<ul class="results">*@
         @foreach (var item in result.Items())
         {
             <div class="clearfix search-result text-start">
                 <h4><a href="#">@item.Title</a></h4>
                 <small class="text-success">Score: @item.Score</small>
-                <p>Maecenas metus nulla, commodo a sodales sed, dignissim pretium nunc. Nam et lacus neque. Ut enim massa, sodales tempor convallis et, iaculis ac massa.</p>
+                <p>@item.Snippet</p>
             </div>
 
             @* <li>
