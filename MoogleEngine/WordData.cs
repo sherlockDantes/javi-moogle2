@@ -9,6 +9,10 @@ namespace MoogleEngine
         public double IDF { get; set; }
         public double[] TFIDF { get; set; }
 
+        public string[] Snippets { get; set; }
+
+        public List<int>[] WordIndexes { get; set; }
+
         // Ineficiente crear un array nuevo copiando uno que ya existe
         //public WordData(int[] termFrecuency)
         //{
@@ -46,5 +50,4 @@ namespace MoogleEngine
             }
         }
     }
-
 }

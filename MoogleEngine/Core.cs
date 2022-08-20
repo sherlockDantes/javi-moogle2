@@ -18,20 +18,33 @@ namespace MoogleEngine
 
                 documentTotalWords[i] = words.Length;
 
-                foreach (var word in words)
+                for  (var j = 0; j < words.Length; j++)
                 {
-                    if (corpus.ContainsKey(word))
+                    var lindex = j - 5 < 0 ? 0 : j - 5;
+                    var uindex = j + 5 > words.Length ? words.Length : j + 5;
+                    string snippet = string.Join(" ", words.AsSpan()[lindex..uindex].ToArray());
+                    if (corpus.ContainsKey(words[j]))
                     {
-                        wordFrecuency = corpus[word].TF;
+                        corpus[words[j]].Snippets[i] = snippet;
+                        wordFrecuency = corpus[words[j]].TF;
                         wordFrecuency[i]++;
+                        if (corpus[words[j]].WordIndexes[i] == null)
+                            corpus[words[j]].WordIndexes[i] = new List<int>();
+                        corpus[words[j]].WordIndexes[i].Add(j);
                     }
                     else
                     {
                         wordFrecuency = new double[files.Length];
                         wordFrecuency[i]++;
-                        corpus.Add(word, new WordData(wordFrecuency));
+                        var snippets = new string[files.Length];
+                        snippets[i] = snippet;
+                        corpus.Add(words[j], new WordData(wordFrecuency) { Snippets = snippets, WordIndexes = new List<int>[files.Length] });
+                        corpus[words[j]].WordIndexes[i] = new List<int>();
+                        corpus[words[j]].WordIndexes[i].Add(j);
                     }
                 }
+
+               
 
                 // Normalize TF: divide the term frequency by the total number of terms in a document
                 foreach (var word in words)
@@ -50,17 +63,34 @@ namespace MoogleEngine
         {
             var queryData = new SortedDictionary<string, QueryData>();
 
-            string[] queryTerms = query.Split(" ");
+            string[] queryTerms = query.Split(" ").Select(x => x.Trim()).ToArray();
 
+          
             for (var i = 0; i < queryTerms.Length; i++)
             {
-                if (queryData.ContainsKey(queryTerms[i]))
+                char? op = null;
+                double opMultiplier = 0;
+                var term = queryTerms[i].Trim();
+
+                if (term.StartsWith('!') || term.StartsWith('^') || term.StartsWith('*'))
                 {
-                    queryData[queryTerms[i]].TF++;
+                    op = term[0];
+                    if (op == '*')
+                    {
+                        opMultiplier = 0.1 + Math.Log(term.Count(x => x.Equals(op)));
+                    }
+                }
+
+                term = Tools.TokenizeWord(term);
+                queryTerms[i] = term;
+
+                if (queryData.ContainsKey(term))
+                {
+                    queryData[term].TF++;
                 }
                 else
                 {
-                    queryData.Add(queryTerms[i], new QueryData { TF = 1 });
+                    queryData.Add(term, new QueryData { TF = 1, Operator = op, OperatorMultiplier = opMultiplier });
                 }
             }
 
@@ -81,10 +111,7 @@ namespace MoogleEngine
                 }
             }
 
-
-
             return queryData;
         }
-
     }
 }

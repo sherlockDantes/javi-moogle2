@@ -9,6 +9,12 @@ namespace MoogleEngine
             return RemoveAccent(text).Split(" @$/#.-:&+=[]*^~!?(){},''\">_<;%\\".ToCharArray()).Select(word => Regex.Replace(word, "[^a-zA-Z]", "").ToLower()).Where(word => word != "").ToArray();
         }
 
+        public static string TokenizeWord(string text)
+        {
+            var str = RemoveAccent(text).ToLower();
+            return Regex.Replace(str, "[^a-zA-Z]", "");
+        }
+
         public static string[] TokenizeQuery(string text)
         {
             return RemoveAccent(text).Split(" @$/#.-:&+=[]?(){},''\">_<;%\\".ToCharArray()).Select(word => Regex.Replace(word, "[^a-zA-Z]", "").ToLower()).Where(word => word != "").ToArray();

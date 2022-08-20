@@ -35,25 +35,109 @@ public static class Moogle
             tfidfMatrix.Add(tfidf);
         }
         //var queryVector = GetTF_IDFQueryNormalized(query, corpus);
-        double[] cosines = GetCosineSimilarity(queryData.Values.Select(x=> x.TFIDF).ToArray(), tfidfMatrix);
+        double[] cosines = GetCosineSimilarity(queryData.Values.Select(x => x.TFIDF).ToArray(), tfidfMatrix);
 
-        var result = GetSearchItems(files, cosines);
+        var result = GetSearchItems(files, cosines, queryData, corpus);
 
         sw.Stop();
-        
-        return new SearchResult(GetSearchItems(files, cosines)) { Seconds = sw.Elapsed.Seconds};
+
+        return new SearchResult(result) { Seconds = sw.Elapsed.Seconds };
     }
 
-    static SearchItem[] GetSearchItems(string[] files, double[] cosines)
+    static SearchItem[] GetSearchItems(string[] files, double[] cosines, SortedDictionary<string, QueryData> queryData, SortedDictionary<string, WordData> Corpus)
     {
         var searchItems = new SearchItem[cosines.Length];
 
         for (int i = 0; i < files.Length; i++)
         {
-            searchItems[i] = new SearchItem(Path.GetFileName(files[i]), "", cosines[i]);
+            if (cosines[i] == 0 || double.IsNaN(cosines[i]))
+            {
+                continue;
+            }
+
+            searchItems[i] = new SearchItem(Path.GetFileName(files[i]), files[i], "", cosines[i]);
         }
 
-        return searchItems;
+        foreach (var term in queryData.Keys)
+        {
+            if (queryData[term].Operator == null)
+            {
+                if (Corpus.ContainsKey(term))
+                {
+                    for (var i = 0; i < Corpus[term].TF.Length; i++)
+                    {
+                        if (Corpus[term].TF[i] > 0)
+                        {
+                            if (searchItems[i] != null)
+                                searchItems[i].Snippet = Corpus[term].Snippets[i];
+                        }
+                    }
+                }
+                continue;
+            }
+
+            switch (queryData[term].Operator)
+            {
+                case '!':
+                    {
+                        if (Corpus.ContainsKey(term))
+                        {
+                            for (var i = 0; i < Corpus[term].TF.Length; i++)
+                            {
+                                if (Corpus[term].TF[i] > 0)
+                                {
+                                    searchItems[i] = null;
+                                }
+                                else
+                                {
+                                    if (searchItems[i] != null)
+                                        searchItems[i].Snippet = Corpus[term].Snippets[i];
+                                }
+                            }
+                        }
+                    }
+                    break;
+                case '^':
+                    {
+                        if (Corpus.ContainsKey(term))
+                        {
+                            for (var i = 0; i < Corpus[term].TF.Length; i++)
+                            {
+                                if (Corpus[term].TF[i] == 0)
+                                {
+                                    searchItems[i] = null;
+                                }
+                                else
+                                {
+                                    if (searchItems[i] != null)
+                                        searchItems[i].Snippet = Corpus[term].Snippets[i];
+                                }
+                            }
+                        }
+                    }
+                    break;
+                case '*':
+                    {
+                        if (Corpus.ContainsKey(term))
+                        {
+                            for (var i = 0; i < Corpus[term].TF.Length; i++)
+                            {
+                                if (Corpus[term].TF[i] > 0)
+                                {
+                                    searchItems[i].Score += queryData[term].OperatorMultiplier;
+                                    searchItems[i].Snippet = Corpus[term].Snippets[i];
+                                    searchItems[i].Snippet = Corpus[term].Snippets[i];
+                                }
+                            }
+                        }
+                    }
+                    break;
+
+            }
+        }
+        var result = searchItems.Where(x => x != null).ToArray();
+
+        return result;
     }
     // static string GetSnippet(string fileName, string folderPath, Dictionary<string, double[]> tf_idfMatrix, SortedDictionary<string, WordData> corpus)
     // {
